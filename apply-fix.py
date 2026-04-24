@@ -61,6 +61,8 @@ def classify_errors(log: str):
         tags.add("buffer_cast_removed")
     if " to_ulong'" in log and "address_v4" in log:
         tags.add("address_v4_to_ulong")
+    if " from_string'" in log and ("address_v4" in log or "address_v6" in log or "boost::asio::ip::address" in log):
+        tags.add("address_from_string_removed")
     if "MSB8020" in log and "v142" in log:
         tags.add("toolset_v142")
     if "vcvarsall.bat" in log and "Unable to find" in log:
@@ -375,6 +377,30 @@ def apply_fix_address_v4_to_ulong():
     return changed
 
 
+def apply_fix_address_from_string():
+    """address::from_string / address_v4::from_string / address_v6::from_string
+    removido em Boost 1.66+; usar make_address / make_address_v4 / make_address_v6."""
+    changed = False
+    for f in SRC.rglob("*"):
+        if not f.is_file() or f.suffix.lower() not in {".h", ".cpp", ".hpp"}:
+            continue
+        try:
+            c = f.read_text(encoding="utf-8", errors="replace")
+        except Exception:
+            continue
+        new = c
+        # Substitui <ns>address_vN::from_string(x) -> <ns>make_address_vN(x)
+        new = re.sub(
+            r"((?:boost::)?asio::ip::)address(_v4|_v6)?::from_string\s*\(",
+            r"\1make_address\2(",
+            new,
+        )
+        if new != c:
+            f.write_text(new, encoding="utf-8")
+            changed = True
+    return changed
+
+
 FIX_HANDLERS = {
     "soh_bytes": apply_fix_soh_bytes,
     "io_service_header": apply_fix_io_service_header,
@@ -390,6 +416,7 @@ FIX_HANDLERS = {
     "timer_expires_from_now": apply_fix_timer_expires_from_now,
     "buffer_cast_removed": apply_fix_buffer_cast_removed,
     "address_v4_to_ulong": apply_fix_address_v4_to_ulong,
+    "address_from_string_removed": apply_fix_address_from_string,
 }
 
 
