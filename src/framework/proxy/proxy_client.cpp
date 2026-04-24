@@ -37,7 +37,7 @@ void Proxy::terminate()
         g_proxies.erase(self);
         disconnect();
         boost::system::error_code ec;
-        m_timer.cancel(ec);
+        m_timer.cancel();
     });
 }
 
@@ -75,7 +75,7 @@ void Proxy::check(const boost::system::error_code& ec)
             ping();
         }
     }
-    m_timer.expires_from_now(std::chrono::milliseconds(CHECK_INTERVAL));
+    m_timer.expires_after(std::chrono::milliseconds(CHECK_INTERVAL));
     m_timer.async_wait(std::bind(&Proxy::check, shared_from_this(), std::placeholders::_1));
 }
 
@@ -323,7 +323,7 @@ void Session::terminate(boost::system::error_code ec)
             boost::system::error_code ecc;
             m_socket.shutdown(boost::asio::ip::tcp::socket::shutdown_both, ecc);
             m_socket.close(ecc);
-            m_timer.cancel(ecc);
+            m_timer.cancel();
         } else if (m_disconnectCallback) {
             m_disconnectCallback(ec);
         }
@@ -348,7 +348,7 @@ void Session::check(const boost::system::error_code& ec)
 
     selectProxies();
 
-    m_timer.expires_from_now(std::chrono::milliseconds(CHECK_INTERVAL));
+    m_timer.expires_after(std::chrono::milliseconds(CHECK_INTERVAL));
     m_timer.async_wait(std::bind(&Session::check, shared_from_this(), std::placeholders::_1));
 }
 
