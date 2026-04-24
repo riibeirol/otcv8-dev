@@ -73,9 +73,9 @@ void WebsocketSession::on_resolve(const boost::system::error_code& ec, boost::as
         return onError("resolve error", ec.message());
     iterator.begin()->endpoint().port(m_port);
     if (m_ssl) {
-        boost::beast::get_lowest_layer(*m_ssl).async_connect(*iterator.begin().begin(), std::bind(&WebsocketSession::on_connect, shared_from_this(), std::placeholders::_1));
+        boost::beast::get_lowest_layer(*m_ssl).async_connect(*iterator.begin().begin().begin(), std::bind(&WebsocketSession::on_connect, shared_from_this(), std::placeholders::_1));
     } else {
-        boost::beast::get_lowest_layer(*m_socket).async_connect(*iterator.begin().begin(), std::bind(&WebsocketSession::on_connect, shared_from_this(), std::placeholders::_1));
+        boost::beast::get_lowest_layer(*m_socket).async_connect(*iterator.begin().begin().begin(), std::bind(&WebsocketSession::on_connect, shared_from_this(), std::placeholders::_1));
     }
 }
 
