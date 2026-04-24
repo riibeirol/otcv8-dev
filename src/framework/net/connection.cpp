@@ -29,7 +29,7 @@
 #include <framework/util/extras.h>
 #include <chrono>
 
-asio::io_service g_ioService;
+asio::io_context g_ioService;
 std::list<std::shared_ptr<asio::streambuf>> Connection::m_outputStreams;
 
 Connection::Connection() :
