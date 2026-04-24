@@ -56,7 +56,7 @@ private:
     boost::beast::flat_buffer m_streambuf{ 16 * 1024 * 1024 }; // limited to 16MB
     std::queue<std::string> m_sendQueue;
 
-    void on_resolve(const boost::system::error_code& ec, ::results_type::iterator iterator);
+    void on_resolve(const boost::system::error_code& ec, boost::asio::ip::tcp::resolver::results_type::iterator iterator);
     void on_connect(const boost::system::error_code& ec);
     void on_handshake(const boost::system::error_code& ec);
     void on_send(const boost::system::error_code& ec);
