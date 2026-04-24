@@ -9,12 +9,12 @@ jobs:
 
     steps:
     - name: Checkout
-      uses: actions/checkout@v2
+      uses: actions/checkout@v4
       with:
           submodules: recursive
 
     - name: Setup MSBuild and add to PATH
-      uses: microsoft/setup-msbuild@v1.0.2
+      uses: microsoft/setup-msbuild@v2
       id: setup_msbuild
 
     - name: Run vcpkg
@@ -49,7 +49,7 @@ jobs:
     #     .\tools\sign\signtool.exe sign /f .\tools\sign\certificate.pfx /p ${{ secrets.SIGN_PASSWORD }} /fd SHA256 /t http://timestamp.digicert.com /d "OTclientV8" otclient_dx.exe
 
     - name: Upload binaries
-      uses: 'actions/upload-artifact@v2'
+      uses: 'actions/upload-artifact@v4'
       with:
         name: Download-binaries
         path: |
