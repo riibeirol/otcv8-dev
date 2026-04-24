@@ -33,8 +33,14 @@
 #include <framework/platform/platform.h>
 #include <framework/http/http.h>
 
+// Troyale 2026-04-24: substituido boost::process (removido em boost 1.88+)
+// por spawn C puro. Uso: restart do proprio binario apos updater — basta spawnar filho.
 #if not(defined(ANDROID) || defined(FREE_VERSION))
-#include <boost/process.hpp>
+#ifdef _WIN32
+#include <process.h>
+#else
+#include <cstdlib>
+#endif
 #endif
 
 #include <locale>
@@ -183,12 +189,14 @@ void Application::close()
 void Application::restart()
 {
 #if not(defined(ANDROID) || defined(FREE_VERSION))
-    boost::process::child c(g_resources.getBinaryName());
-    std::error_code ec2;
-    if (c.wait_for(std::chrono::seconds(1), ec2)) {
-        g_logger.fatal("Updater restart error. Please restart application");
-    }
-    c.detach();
+    std::string bin = g_resources.getBinaryName();
+#ifdef _WIN32
+    // _P_NOWAIT: spawn nao bloqueia, processo filho fica independente (detach)
+    _spawnl(_P_NOWAIT, bin.c_str(), bin.c_str(), (const char*)nullptr);
+#else
+    std::string cmd = bin + " &";
+    (void)std::system(cmd.c_str());
+#endif
     quick_exit();
 #else
     exit();
@@ -198,12 +206,20 @@ void Application::restart()
 void Application::restartArgs(const std::vector<std::string>& args)
 {
 #if not(defined(ANDROID) || defined(FREE_VERSION))
-    boost::process::child c(g_resources.getBinaryName(), boost::process::args(args));
-    std::error_code ec2;
-    if (c.wait_for(std::chrono::seconds(1), ec2)) {
-        g_logger.fatal("Updater restart error. Please restart application");
-    }
-    c.detach();
+    std::string bin = g_resources.getBinaryName();
+#ifdef _WIN32
+    // Win: monta array argv pra _spawnv
+    std::vector<const char*> argv;
+    argv.push_back(bin.c_str());
+    for (const auto& a : args) argv.push_back(a.c_str());
+    argv.push_back(nullptr);
+    _spawnv(_P_NOWAIT, bin.c_str(), (char* const*)argv.data());
+#else
+    std::string cmd = bin;
+    for (const auto& a : args) { cmd += " "; cmd += a; }
+    cmd += " &";
+    (void)std::system(cmd.c_str());
+#endif
     quick_exit();
 #else
     exit();

@@ -32,8 +32,14 @@
 #include <queue>
 #include <regex>
 
+// Troyale 2026-04-24: substituido boost::process (removido em boost 1.88+)
 #if not(defined(ANDROID) || defined(FREE_VERSION))
-#include <boost/process.hpp>
+#ifdef _WIN32
+#include <process.h>
+#else
+#include <cstdlib>
+#include <sys/wait.h>
+#endif
 #endif
 #include <locale>
 #include <zlib.h>
@@ -128,13 +134,17 @@ bool ResourceManager::launchCorrect(const std::string& product, const std::strin
     if (binary == m_binaryPath)
         return false;
 
-    boost::process::child c(binary.string());
-    std::error_code ec2;
-    if (c.wait_for(std::chrono::seconds(5), ec2)) {
-        return c.exit_code() == 0;
-    }
-
-    c.detach();
+    // Troyale 2026-04-24: substituido boost::process::child por spawn nativo.
+    // Esse trecho eh chamado quando o updater verifica um novo binario — spawna e
+    // detaches, retornando true pra indicar sucesso de lancamento.
+    std::string binStr = binary.string();
+#ifdef _WIN32
+    intptr_t r = _spawnl(_P_NOWAIT, binStr.c_str(), binStr.c_str(), (const char*)nullptr);
+    if (r == -1) return false;
+#else
+    std::string cmd = binStr + " &";
+    if (std::system(cmd.c_str()) != 0) return false;
+#endif
     return true;
 #else
     return false;
