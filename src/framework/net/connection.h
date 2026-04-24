@@ -67,9 +67,9 @@ public:
     ConnectionPtr asConnection() { return static_self_cast<Connection>(); }
 
 protected:
-    void internal_connect(asio::ip::basic_resolver<asio::ip::tcp>::results_type::iterator endpointIterator);
+    void internal_connect(asio::ip::basic_resolver<asio::ip::tcp>::results_type endpointIterator);
     void internal_write();
-    void onResolve(const boost::system::error_code& error, asio::ip::basic_resolver<asio::ip::tcp>::results_type::iterator endpointIterator);
+    void onResolve(const boost::system::error_code& error, asio::ip::basic_resolver<asio::ip::tcp>::results_type endpointIterator);
     void onConnect(const boost::system::error_code& error);
     void onCanWrite(const boost::system::error_code& error);
     void onWrite(const boost::system::error_code& error, size_t writeSize, std::shared_ptr<asio::streambuf> outputStream);

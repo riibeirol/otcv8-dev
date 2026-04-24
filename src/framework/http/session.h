@@ -47,7 +47,7 @@ private:
     boost::beast::http::request<boost::beast::http::string_body> m_request;
     boost::beast::http::response_parser<boost::beast::http::dynamic_body> m_response;
 
-    void on_resolve(const boost::system::error_code& ec, boost::asio::ip::tcp::resolver::results_type::iterator iterator);
+    void on_resolve(const boost::system::error_code& ec, boost::asio::ip::tcp::resolver::results_type iterator);
     void on_connect(const boost::system::error_code& ec);
     void on_request_sent(const boost::system::error_code& ec);
     void on_read_header(const boost::system::error_code & ec, size_t bytes_transferred);
