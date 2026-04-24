@@ -63,6 +63,8 @@ def classify_errors(log: str):
         tags.add("address_v4_to_ulong")
     if " from_string'" in log and ("address_v4" in log or "address_v6" in log or "boost::asio::ip::address" in log):
         tags.add("address_from_string_removed")
+    if "LNK2001" in log and ("AvSetMmThreadCharacteristics" in log or "AvRevertMmThreadCharacteristics" in log):
+        tags.add("missing_avrt_lib")
     if "MSB8020" in log and "v142" in log:
         tags.add("toolset_v142")
     if "vcvarsall.bat" in log and "Unable to find" in log:
@@ -377,6 +379,28 @@ def apply_fix_address_v4_to_ulong():
     return changed
 
 
+def apply_fix_missing_avrt_lib():
+    """Adiciona avrt.lib em OTCLIENT_LIBDEPS do settings.props (Windows AudioVideo Runtime)."""
+    props = SRC.parent / "vc16" / "settings.props"
+    if not props.exists():
+        return False
+    try:
+        c = props.read_text(encoding="utf-8", errors="replace")
+    except Exception:
+        return False
+    if "avrt.lib" in c:
+        return False
+    new = c.replace("winmm.lib;\n        lua51.lib;",
+                    "winmm.lib;\n        avrt.lib;\n        lua51.lib;")
+    if new == c:
+        # fallback: inserir antes do fechamento do bloco
+        new = c.replace("</OTCLIENT_LIBDEPS>", "        avrt.lib;\n    </OTCLIENT_LIBDEPS>")
+    if new != c:
+        props.write_text(new, encoding="utf-8")
+        return True
+    return False
+
+
 def apply_fix_address_from_string():
     """address::from_string / address_v4::from_string / address_v6::from_string
     removido em Boost 1.66+; usar make_address / make_address_v4 / make_address_v6."""
@@ -417,6 +441,7 @@ FIX_HANDLERS = {
     "buffer_cast_removed": apply_fix_buffer_cast_removed,
     "address_v4_to_ulong": apply_fix_address_v4_to_ulong,
     "address_from_string_removed": apply_fix_address_from_string,
+    "missing_avrt_lib": apply_fix_missing_avrt_lib,
 }
 
 

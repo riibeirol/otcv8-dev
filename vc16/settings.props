@@ -23,6 +23,7 @@
         libssl.lib;
         physfs-static.lib;
         winmm.lib;
+        avrt.lib;
         lua51.lib;
         dbghelp.lib;
         kernel32.lib;
