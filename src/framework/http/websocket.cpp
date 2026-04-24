@@ -68,7 +68,7 @@ void WebsocketSession::send(std::string data)
 }
 
 
-void WebsocketSession::on_resolve(const boost::system::error_code& ec, boost::asio::ip::tcp::resolver::iterator iterator) {
+void WebsocketSession::on_resolve(const boost::system::error_code& ec, ::results_type::iterator iterator) {
     if (ec)
         return onError("resolve error", ec.message());
     iterator->endpoint().port(m_port);

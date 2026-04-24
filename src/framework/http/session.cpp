@@ -52,7 +52,7 @@ void HttpSession::start() {
     m_resolver.async_resolve(m_domain, std::to_string(m_port), std::bind(&HttpSession::on_resolve, shared_from_this(), std::placeholders::_1, std::placeholders::_2));
 }
 
-void HttpSession::on_resolve(const boost::system::error_code& ec, boost::asio::ip::tcp::resolver::iterator iterator) {
+void HttpSession::on_resolve(const boost::system::error_code& ec, ::results_type::iterator iterator) {
     if (ec)
         return onError("resolve error", ec.message());
     iterator->endpoint().port(m_port);
