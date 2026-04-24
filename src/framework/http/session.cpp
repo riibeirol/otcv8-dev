@@ -56,7 +56,7 @@ void HttpSession::on_resolve(const boost::system::error_code& ec, boost::asio::i
     if (ec)
         return onError("resolve error", ec.message());
     iterator.begin()->endpoint().port(m_port);
-    m_socket.async_connect(*iterator.begin().begin().begin(), std::bind(&HttpSession::on_connect, shared_from_this(), std::placeholders::_1));
+    m_socket.async_connect(*iterator.begin(), std::bind(&HttpSession::on_connect, shared_from_this(), std::placeholders::_1));
 }
 
 void HttpSession::on_connect(const boost::system::error_code& ec) {

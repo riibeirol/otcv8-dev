@@ -184,12 +184,15 @@ def apply_fix_resolver_handler_signature():
             r"(tcp::resolver::results_type|basic_resolver<[^>]+>::results_type)::iterator\s+(\w+)",
             r"\1 \2", new,
         )
-        # Se o arquivo está em http/, ajusta usos do iterator
+        # Se o arquivo está em http/, ajusta usos do iterator (idempotente)
         if "http/" in str(f):
-            # iterator->X -> iterator.begin()->X (só em on_resolve-esque contexts)
-            new = re.sub(r"\biterator->", r"iterator.begin()->", new)
-            # *iterator -> *iterator.begin()
-            new = re.sub(r"\*iterator\b", r"*iterator.begin()", new)
+            # iterator->X -> iterator.begin()->X, só se ainda NÃO estiver na forma .begin()->
+            new = re.sub(r"(?<!\.begin\(\))\biterator->", r"iterator.begin()->", new)
+            # *iterator -> *iterator.begin(), só se ainda NÃO tiver .begin() após iterator
+            new = re.sub(r"\*iterator\b(?!\.begin\(\))", r"*iterator.begin()", new)
+            # dedup agressivo (caso runs antigas tenham empilhado)
+            while "iterator.begin().begin()" in new:
+                new = new.replace("iterator.begin().begin()", "iterator.begin()")
         if new != c:
             f.write_text(new, encoding="utf-8")
             changed = True
@@ -209,11 +212,10 @@ def apply_fix_resolver_results_deref():
         except Exception:
             continue
         new = c
-        new = re.sub(r"\biterator->", r"iterator.begin()->", new)
-        new = re.sub(r"\*iterator\b", r"*iterator.begin()", new)
-        # evita duplicação se já foi aplicado
-        new = new.replace("iterator.begin().begin()->", "iterator.begin()->")
-        new = new.replace("*iterator.begin().begin()", "*iterator.begin()")
+        new = re.sub(r"(?<!\.begin\(\))\biterator->", r"iterator.begin()->", new)
+        new = re.sub(r"\*iterator\b(?!\.begin\(\))", r"*iterator.begin()", new)
+        while "iterator.begin().begin()" in new:
+            new = new.replace("iterator.begin().begin()", "iterator.begin()")
         if new != c:
             f.write_text(new, encoding="utf-8")
             changed = True
