@@ -210,22 +210,39 @@ def apply_fix_resolver_handler_signature():
 
 
 def apply_fix_resolver_results_deref():
-    """Dentro dos files http/, converte 'iterator->' em 'iterator.begin()->' e
-    '*iterator' em '*iterator.begin()'. Usado quando on_resolve recebe
-    results_type (novo boost) em vez do iterator."""
+    """Em qualquer arquivo que use async_resolve/results_type, converte
+    '*<var>' / '<var>->' de um basic_resolver_results pra '*<var>.begin()' / '<var>.begin()->'.
+    Idempotente e dedup-safe."""
     changed = False
-    for f in SRC.rglob("http/*"):
-        if not f.is_file() or f.suffix.lower() not in {".cpp", ".h"}:
+    # nomes comuns pra variável resolvida; evita tocar em coisas aleatórias
+    var_names = ("iterator", "results", "endpointIterator", "endpoints", "endpoint_it", "it")
+    for f in SRC.rglob("*"):
+        if not f.is_file() or f.suffix.lower() not in {".cpp", ".h", ".hpp"}:
             continue
         try:
             c = f.read_text(encoding="utf-8", errors="replace")
         except Exception:
             continue
+        # Só mexer em arquivos que realmente usam resolver moderno
+        if "async_resolve" not in c and "results_type" not in c:
+            continue
         new = c
-        new = re.sub(r"(?<!\.begin\(\))\biterator->", r"iterator.begin()->", new)
-        new = re.sub(r"\*iterator\b(?!\.begin\(\))", r"*iterator.begin()", new)
-        while "iterator.begin().begin()" in new:
-            new = new.replace("iterator.begin().begin()", "iterator.begin()")
+        for v in var_names:
+            # <v>-> -> <v>.begin()-> (idempotente)
+            new = re.sub(
+                rf"(?<!\.begin\(\))\b{v}->",
+                rf"{v}.begin()->",
+                new,
+            )
+            # *<v> -> *<v>.begin() (idempotente)
+            new = re.sub(
+                rf"\*{v}\b(?!\.begin\(\))",
+                rf"*{v}.begin()",
+                new,
+            )
+            # dedup empilhamento
+            while f"{v}.begin().begin()" in new:
+                new = new.replace(f"{v}.begin().begin()", f"{v}.begin()")
         if new != c:
             f.write_text(new, encoding="utf-8")
             changed = True
