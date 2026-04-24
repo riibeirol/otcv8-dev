@@ -3275,8 +3275,24 @@ int ProtocolGame::setTileDescription(const InputMessagePtr& msg, Position positi
         if (!g_game.getFeature(Otc::GameNewCreatureStacking) && stackPos > Tile::MAX_THINGS)
             g_logger.traceError(stdext::format("too many things, pos=%s, stackpos=%d", stdext::to_string(position), stackPos));
 
-        ThingPtr thing = getThing(msg);
-        g_map.addThing(thing, position, stackPos);
+        // Troyale 2026-04-24: tolerant parse per item. Se um item quebrar (invalid id
+        // por mismatch de formato no mapa custom/server custom), desce bytes ate achar
+        // o marcador de fim-de-tile (u16 >= 0xff00) em vez de abortar todo o packet.
+        try {
+            ThingPtr thing = getThing(msg);
+            g_map.addThing(thing, position, stackPos);
+        } catch (stdext::exception& e) {
+            g_logger.traceError(stdext::format("tile parse skipped: pos=%s stackpos=%d err=%s",
+                                              stdext::to_string(position), stackPos, e.what()));
+            // consome ate achar terminator de tile (0xff00+) ou EOF
+            while (!msg->eof()) {
+                if (msg->peekU16() >= 0xff00) {
+                    return msg->getU16() & 0xff;
+                }
+                msg->getU8();
+            }
+            return 0;
+        }
     }
 
     return 0;

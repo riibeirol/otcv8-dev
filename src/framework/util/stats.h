@@ -9,6 +9,8 @@
 #include <chrono>
 #include <unordered_map>
 #include <set>
+#include <string>
+#include <cstdint>
 
 // NOT THREAD SAFE
 
