@@ -105,7 +105,7 @@ void Connection::connect(const std::string& host, uint16 port, const std::functi
     m_readTimer.async_wait(std::bind(&Connection::onTimeout, asConnection(), std::placeholders::_1));
 }
 
-void Connection::internal_connect(asio::ip::basic_resolver<>asio::ip::basic_resolver<asio::ip::tcp>::results_type::iterator endpointIterator)
+void Connection::internal_connect(asio::ip::basic_resolver<asio::ip::tcp>::results_type::iterator endpointIterator)
 {
     m_socket.async_connect(*endpointIterator, std::bind(&Connection::onConnect, asConnection(), std::placeholders::_1));
 
@@ -202,7 +202,7 @@ void Connection::read_some(const RecvCallback& callback)
     m_readTimer.async_wait(std::bind(&Connection::onTimeout, asConnection(), std::placeholders::_1));
 }
 
-void Connection::onResolve(const boost::system::error_code& error, asio::ip::basic_resolver<>asio::ip::basic_resolver<asio::ip::tcp>::results_type::iterator endpointIterator)
+void Connection::onResolve(const boost::system::error_code& error, asio::ip::basic_resolver<asio::ip::tcp>::results_type::iterator endpointIterator)
 {
     m_readTimer.cancel();
 
