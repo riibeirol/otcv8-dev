@@ -17,20 +17,36 @@ jobs:
       uses: microsoft/setup-msbuild@v2
       id: setup_msbuild
 
-    - name: Run vcpkg
-      uses: lukka/run-vcpkg@v7
-      with:
-        vcpkgDirectory: ${{ runner.workspace }}/vcpkg/
-        vcpkgTriplet: x86-windows-static
-        vcpkgGitCommitId: 3b3bd424827a1f7f4813216f6b32b6c61e386b2e
-        vcpkgArguments: >
-          boost-iostreams boost-asio boost-beast boost-system boost-variant boost-lockfree boost-process boost-program-options boost-uuid boost-filesystem
-          luajit glew physfs openal-soft libogg libvorbis zlib libzip bzip2 openssl
+    - name: Install vcpkg deps
+      shell: pwsh
+      run: |
+        & $env:VCPKG_INSTALLATION_ROOT\vcpkg install `
+          boost-iostreams:x86-windows-static `
+          boost-asio:x86-windows-static `
+          boost-beast:x86-windows-static `
+          boost-system:x86-windows-static `
+          boost-variant:x86-windows-static `
+          boost-lockfree:x86-windows-static `
+          boost-process:x86-windows-static `
+          boost-program-options:x86-windows-static `
+          boost-filesystem:x86-windows-static `
+          boost-uuid:x86-windows-static `
+          luajit:x86-windows-static `
+          glew:x86-windows-static `
+          physfs:x86-windows-static `
+          openal-soft:x86-windows-static `
+          libogg:x86-windows-static `
+          libvorbis:x86-windows-static `
+          zlib:x86-windows-static `
+          libzip:x86-windows-static `
+          bzip2:x86-windows-static `
+          openssl:x86-windows-static
 
     - name: Integrate vcpkg
+      shell: pwsh
       run: |
-        ${{ runner.workspace }}/vcpkg/vcpkg integrate install
-        
+        & $env:VCPKG_INSTALLATION_ROOTcpkg integrate install
+
     - name: Compile otclient_dx
       timeout-minutes: 20
       run: |
