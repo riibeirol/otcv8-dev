@@ -51,6 +51,16 @@ def classify_errors(log: str):
         tags.add("missing_include_climits")
     if "'LLONG_MAX'" in log or "'LONG_MAX'" in log or "'INT_MIN'" in log:
         tags.add("missing_include_climits")
+    if " reset'" in log and "boost::asio::io_context" in log:
+        tags.add("io_context_reset_to_restart")
+    if " query'" in log and "basic_resolver" in log:
+        tags.add("resolver_query_removed")
+    if " expires_from_now'" in log and "basic_waitable_timer" in log:
+        tags.add("timer_expires_from_now")
+    if " buffer_cast'" in log and "boost::asio" in log:
+        tags.add("buffer_cast_removed")
+    if " to_ulong'" in log and "address_v4" in log:
+        tags.add("address_v4_to_ulong")
     if "MSB8020" in log and "v142" in log:
         tags.add("toolset_v142")
     if "vcvarsall.bat" in log and "Unable to find" in log:
@@ -245,6 +255,109 @@ def apply_fix_missing_include_climits():
     return changed
 
 
+def apply_fix_io_context_reset():
+    """io_context::reset() virou restart() em Boost 1.66+"""
+    changed = False
+    for f in SRC.rglob("*"):
+        if not f.is_file() or f.suffix.lower() not in {".h", ".cpp", ".hpp"}:
+            continue
+        try:
+            c = f.read_text(encoding="utf-8", errors="replace")
+        except Exception:
+            continue
+        # g_ioService.reset() / io_service.reset() / ioContext.reset() contextuais
+        new = re.sub(r"\b(g_ioService|m_ioService|ioService|ioContext|m_context|g_context)\.reset\(\)",
+                     r"\1.restart()", c)
+        if new != c:
+            f.write_text(new, encoding="utf-8")
+            changed = True
+    return changed
+
+
+def apply_fix_resolver_query_removed():
+    """tcp::resolver::query removido em Boost 1.66+. Padrão:
+        resolver::query q(host, port); resolver.async_resolve(q, cb);
+      ->
+        resolver.async_resolve(host, port, cb);
+    """
+    changed = False
+    for f in SRC.rglob("*"):
+        if not f.is_file() or f.suffix.lower() not in {".h", ".cpp", ".hpp"}:
+            continue
+        try:
+            c = f.read_text(encoding="utf-8", errors="replace")
+        except Exception:
+            continue
+        new = c
+        # Pattern: resolver::query <name>(arg1, arg2);\n<resolver>.async_resolve(<name>, cb)
+        # Substitui pela forma async_resolve(arg1, arg2, cb)
+        pat = re.compile(
+            r"(?:asio::|boost::asio::)?ip::tcp::resolver::query\s+(\w+)\s*\(\s*([^,]+),\s*([^)]+)\)\s*;\s*"
+            r"(\w+)\.async_resolve\(\s*\1\s*,"
+        )
+        new = pat.sub(r"\4.async_resolve(\2, \3,", new)
+        if new != c:
+            f.write_text(new, encoding="utf-8")
+            changed = True
+    return changed
+
+
+def apply_fix_timer_expires_from_now():
+    """basic_waitable_timer::expires_from_now -> expires_after em Boost 1.66+"""
+    changed = False
+    for f in SRC.rglob("*"):
+        if not f.is_file() or f.suffix.lower() not in {".h", ".cpp", ".hpp"}:
+            continue
+        try:
+            c = f.read_text(encoding="utf-8", errors="replace")
+        except Exception:
+            continue
+        new = c.replace(".expires_from_now(", ".expires_after(")
+        if new != c:
+            f.write_text(new, encoding="utf-8")
+            changed = True
+    return changed
+
+
+def apply_fix_buffer_cast_removed():
+    """boost::asio::buffer_cast<T>(buf) -> static_cast<T>(buf.data())"""
+    changed = False
+    for f in SRC.rglob("*"):
+        if not f.is_file() or f.suffix.lower() not in {".h", ".cpp", ".hpp"}:
+            continue
+        try:
+            c = f.read_text(encoding="utf-8", errors="replace")
+        except Exception:
+            continue
+        # boost::asio::buffer_cast<TYPE>(EXPR) -> static_cast<TYPE>(EXPR.data())
+        new = re.sub(
+            r"(?:boost::)?asio::buffer_cast<\s*([^>]+?)\s*>\s*\(\s*([^)]+?)\s*\)",
+            r"static_cast<\1>(\2.data())",
+            c,
+        )
+        if new != c:
+            f.write_text(new, encoding="utf-8")
+            changed = True
+    return changed
+
+
+def apply_fix_address_v4_to_ulong():
+    """address_v4::to_ulong() -> to_uint() em Boost 1.66+"""
+    changed = False
+    for f in SRC.rglob("*"):
+        if not f.is_file() or f.suffix.lower() not in {".h", ".cpp", ".hpp"}:
+            continue
+        try:
+            c = f.read_text(encoding="utf-8", errors="replace")
+        except Exception:
+            continue
+        new = c.replace(".to_ulong()", ".to_uint()")
+        if new != c:
+            f.write_text(new, encoding="utf-8")
+            changed = True
+    return changed
+
+
 FIX_HANDLERS = {
     "soh_bytes": apply_fix_soh_bytes,
     "io_service_header": apply_fix_io_service_header,
@@ -255,6 +368,11 @@ FIX_HANDLERS = {
     "timer_cancel_args": apply_fix_timer_cancel,
     "missing_include_string": apply_fix_missing_include_string,
     "missing_include_climits": apply_fix_missing_include_climits,
+    "io_context_reset_to_restart": apply_fix_io_context_reset,
+    "resolver_query_removed": apply_fix_resolver_query_removed,
+    "timer_expires_from_now": apply_fix_timer_expires_from_now,
+    "buffer_cast_removed": apply_fix_buffer_cast_removed,
+    "address_v4_to_ulong": apply_fix_address_v4_to_ulong,
 }
 
 
